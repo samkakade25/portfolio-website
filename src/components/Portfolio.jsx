@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Github, Linkedin, Mail, Phone, ArrowUpRight, ArrowRight, MapPin } from "lucide-react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Github, Linkedin, Mail, Phone, ArrowUpRight, ArrowRight, MapPin, Bug, RotateCcw, Trophy, ExternalLink } from "lucide-react";
 
 // ---- Design tokens ----
 const C = {
@@ -175,6 +175,120 @@ function SectionHeading({ kicker, title, dark = false }) {
         {title}
       </h2>
     </Reveal>
+  );
+}
+
+// ---------- mini game: Squash the Bug ----------
+function BugGame() {
+  const [state, setState] = useState("idle"); // idle | playing | over
+  const [score, setScore] = useState(0);
+  const [best, setBest] = useState(0);
+  const [time, setTime] = useState(20);
+  const [bugs, setBugs] = useState([]);
+  const areaRef = useRef(null);
+  const spawnRef = useRef(null);
+  const tickRef = useRef(null);
+  const idRef = useRef(0);
+ 
+  const addBug = useCallback(() => {
+    const id = idRef.current++;
+    const x = 6 + Math.random() * 84;
+    const y = 10 + Math.random() * 72;
+    setBugs((b) => [...b, { id, x, y }]);
+    setTimeout(() => setBugs((b) => b.filter((bug) => bug.id !== id)), 850);
+  }, []);
+ 
+  const start = () => {
+    setScore(0);
+    setTime(20);
+    setBugs([]);
+    setState("playing");
+    spawnRef.current = setInterval(addBug, 650);
+    tickRef.current = setInterval(() => {
+      setTime((t) => {
+        if (t <= 1) {
+          clearInterval(spawnRef.current);
+          clearInterval(tickRef.current);
+          setBugs([]);
+          setState("over");
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+  };
+ 
+  const squash = (id) => {
+    setBugs((b) => b.filter((bug) => bug.id !== id));
+    setScore((s) => {
+      const ns = s + 1;
+      setBest((bst) => Math.max(bst, ns));
+      return ns;
+    });
+  };
+ 
+  useEffect(() => () => {
+    clearInterval(spawnRef.current);
+    clearInterval(tickRef.current);
+  }, []);
+ 
+  return (
+    <div className="rounded-2xl p-6 sm:p-8" style={{ background: C.bgAlt, border: `1px solid ${C.line}` }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2">
+          <Bug size={18} style={{ color: C.primary }} />
+          <h3 className="font-medium" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Squash the Bug
+          </h3>
+        </div>
+        <div className="flex items-center gap-4 text-sm" style={{ fontFamily: "'JetBrains Mono', monospace", color: C.inkSoft }}>
+          <span>Score: <b style={{ color: C.ink }}>{score}</b></span>
+          <span className="flex items-center gap-1"><Trophy size={13} style={{ color: C.amber }} /> {best}</span>
+          {state === "playing" && <span>{time}s</span>}
+        </div>
+      </div>
+ 
+      <div
+        ref={areaRef}
+        className="relative rounded-xl overflow-hidden select-none"
+        style={{ height: 220, background: "linear-gradient(135deg,#EEF0FA,#F5F6FA)", border: `1px dashed ${C.line}` }}
+      >
+        {state !== "playing" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <p className="text-sm" style={{ color: C.inkSoft }}>
+              {state === "idle" ? "Ship happens. Click the bugs before they escape." : `Time's up — you squashed ${score}.`}
+            </p>
+            <button
+              onClick={start}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-transform hover:scale-105"
+              style={{ background: C.primary, color: "#fff" }}
+            >
+              <RotateCcw size={14} /> {state === "idle" ? "Start" : "Play again"}
+            </button>
+          </div>
+        )}
+        {bugs.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => squash(b.id)}
+            aria-label="squash bug"
+            className="absolute bug-pop flex items-center justify-center rounded-full"
+            style={{ left: `${b.x}%`, top: `${b.y}%`, width: 34, height: 34, background: "#fff", border: `2px solid ${C.amber}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          >
+            <Bug size={16} style={{ color: C.primary }} />
+          </button>
+        ))}
+      </div>
+      <style>{`
+        .bug-pop { animation: bugPop 0.85s linear forwards; }
+        @keyframes bugPop {
+          0% { transform: scale(0.4); opacity: 0; }
+          15% { transform: scale(1); opacity: 1; }
+          85% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(0.5); opacity: 0; }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -483,6 +597,7 @@ export default function Portfolio() {
               }}
             >
               <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
                 <h3
                   className="text-2xl sm:text-3xl font-medium"
                   style={{
@@ -492,6 +607,23 @@ export default function Portfolio() {
                 >
                   Crewaa
                 </h3>
+
+                <a
+                  href="https://www.crewaa.in/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="View Crewaa live"
+                  className="inline-flex items-center gap-1.5 text-sm transition-all hover:opacity-70"
+                  style={{
+                    color: C.inkSoft,
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}
+                >
+                  <span>View Live</span>
+                  <ExternalLink size={14} />
+                </a>
+                </div>
+
                 <span
                   className="text-xs px-3 py-1 rounded-full"
                   style={{
@@ -662,6 +794,12 @@ export default function Portfolio() {
             </p>
           </Reveal>
         </div>
+      </section>
+
+      {/* Easter egg game */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <SectionHeading kicker="Just for fun" title="Take a break." />
+        <Reveal delay={0.05}><BugGame /></Reveal>
       </section>
 
       {/* Contact */}
